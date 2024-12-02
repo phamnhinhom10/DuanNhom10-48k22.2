@@ -77,9 +77,9 @@
 
             <div class="mb-3">
               {% if updated_price %}
-              <var class="price h4">₹{{ updated_price }}.00</var>
+              <var class="price h4">${{ updated_price }}.00</var>
               {% else%}
-              <var class="price h4">₹{{ product.price }}.00</var>
+              <var class="price h4">${{ product.price }}.00</var>
               {% endif %}
             </div>
             <!-- price-detail-wrap .// -->
@@ -89,24 +89,24 @@
             </p>
             <br />
             <dl class="row">
-              <dt class="col-sm-3">Brand</dt>
-              <dd class="col-sm-9">Nike</dd>
+              <dt class="col-sm-3">Thương Hiệu</dt>
+              <dd class="col-sm-9">Dior</dd>
               
-              <dt class="col-sm-3">Color</dt>
+              <dt class="col-sm-3">Màu sắc</dt>
               <dd class="col-sm-9">
                 {% for color in product.color_variant.all %} 
                   {{ color.color_name }} 
                 {% endfor %}
               </dd>
 
-              <dt class="col-sm-3">Delivery</dt>
-              <dd class="col-sm-9">All over the World!</dd>
+              <dt class="col-sm-3">Giao Hàng</dt>
+              <dd class="col-sm-9">Trên toàn thế giới!</dd>
             </dl>
 
             <hr />
             <div class="form-row">
               <div class="form-group mr-3">
-                <label>Quantity</label>
+                <label>Số lượng</label>
                 <div class="input-group mb-3 input-spinner">
                   <div class="input-group-prepend">
                     <button
@@ -132,7 +132,7 @@
 
               {% if sorted_size_variants %}
               <div class="form-group col-md">
-                <label>Select size</label>
+                <label>Kích cỡ</label>
                 <div class="mt-1">
                   {% for size in sorted_size_variants %}
 
@@ -155,21 +155,11 @@
             <!-- Add to Wishlist Button -->
             <div class="form-group d-flex justify-content-start">
               <div class="d-sm-flex mr-2">
-                <div class="mb-2 mb-sm-0 mr-0 mr-sm-3">
-                  <form method="POST"
-                    action="{% url 'add_to_wishlist' product.uid %}?size={{ selected_size }}"
-                  >
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-primary">
-                      <i class="fas fa-heart"></i> Add to Wishlist
-                    </button>
-                  </form>
-                </div>
                 <a
                   href="{% url 'add_to_cart' product.uid %}?size={{ selected_size }}"
                   id="add-to-cart-btn" class="btn btn-primary">
                   <i class="fas fa-shopping-bag mr-1"></i>
-                  <span>Add to cart</span>
+                  <span>Thêm vào giỏ hàng</span>
                 </a>
               </div>
             </div>
@@ -179,7 +169,7 @@
     </div>
 
     <!-- Related Products Section -->
-    <h3 class="title padding-y-sm">Related products</h3>
+    <h3 class="title padding-y-sm">Sản phẩm liên quan</h3>
     {% if related_products%} 
       {% with related_products as list_products %} 
         {% include 'product_parts/product_list.html' %} 
@@ -192,17 +182,17 @@
     <hr />
 
     <!-- Product Review Section -->
-    <h3 class="title padding-bottom-sm">Reviews</h3>
+    <h3 class="title padding-bottom-sm">Đánh giá</h3>
 
     {% for review in product.reviews.all %}
       <div class="card mb-3">
         <div class="card-body" style="background-color: #59ee8d91">
           <div class="form-group">
             <p>
-              <strong>Posted on: </strong>{{ review.date_added|date:"Y-m-d" }} by
+              <strong>Ngày đăng: </strong>{{ review.date_added|date:"Y-m-d" }} by
               <strong>{{ review.user.get_full_name }}</strong><br />
-              <strong>Rating: </strong>{{ review.stars }}/5<br />
-              <strong>Comment: </strong>{{ review.content }}
+              <strong>Xếp hạng: </strong>{{ review.stars }}/5<br />
+              <strong>Bình luận: </strong>{{ review.content }}
             </p>
           </div>
         </div>

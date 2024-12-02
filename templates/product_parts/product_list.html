@@ -1,4 +1,15 @@
 <!-- Product List -->
+<style>
+    .btn-view {
+        display: inline-block;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        margin-top: 10px;
+    }
+</style>
 <div class="row">
     {% for product in list_products %}
     <div class="col-md-3">
@@ -6,10 +17,11 @@
         <div class="img-wrap">
           <img src="/media/{{product.product_images.first.image}}" />
         </div>
-        <figcaption class="info-wrap border-top">
-          <a href="{% url 'get_product' product.slug %}" class="title">
+        <figcaption class="info-wrap border-top" style="text-align: center;">
+          <a href="{% url 'get_product' product.slug %}" class="title" style="text-decoration: none;">
             <b>{{ product.product_name }}</b></a>
-          <div class="price mt-2">₹{{product.price}}.00</div>
+          <div class="price mt-2">${{product.price}}.00</div>
+            <a href="{% url 'get_product' product.slug %}" class="btn-view">Thêm vào giỏ hàng</a>
         </figcaption>
       </figure>
     </div>

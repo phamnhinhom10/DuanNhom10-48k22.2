@@ -10,9 +10,6 @@
       <main class="col-md-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h3 class="mb-0">Order Summary</h3>
-          <a href="{% url 'download_invoice' order.order_id %}" class="btn btn-success">
-            Download Invoice
-          </a>
         </div>
         <div class="table-responsive mb-4">
           <table class="table table-striped table-bordered">
@@ -37,7 +34,7 @@
                   {% endfor %}
                 {% endif %}
                 <td>{{ item.quantity }}</td>
-                <td>₹ {{ item.product_price }}</td>
+                <td>$ {{ item.product_price }}</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -103,21 +100,21 @@
             <dl class="dlist-align">
               <dt style="width: 135px;">Item(s) Subtotal:</dt>
               <dd class="text-right">
-                <strong>₹{{ order.order_total_price }}</strong>
+                <strong>${{ order.order_total_price }}</strong>
               </dd>
             </dl>
 
             <dl class="dlist-align">
               <dt style="width: 135px;">Coupon Applied:</dt>
               <dd class="text-right">
-                <strong>₹{{ order.coupon.discount_amount|default:"0" }}</strong>
+                <strong>${{ order.coupon.discount_amount|default:"0" }}</strong>
               </dd>
             </dl>
 
             <dl class="dlist-align">
               <dt style="width: 135px;">Grand Total:</dt>
               <dd class="text-right">
-                <strong>₹{{ order.grand_total }}</strong>
+                <strong>${{ order.grand_total }}</strong>
               </dd>
             </dl>
           </div>

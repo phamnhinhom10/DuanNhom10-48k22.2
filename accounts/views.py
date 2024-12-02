@@ -1,25 +1,22 @@
-import os, json
+import json
 import uuid
-import razorpay
-from weasyprint import CSS, HTML
-from products.models import *
-from django.urls import reverse
-from django.conf import settings
+
 from django.contrib import messages
-from django.http import JsonResponse
-from home.models import ShippingAddress
-from django.contrib.auth.models import User
-from django.template.loader import get_template
-from accounts.models import Profile, Cart, CartItem, Order, OrderItem
-from base.emails import send_account_activation_email
-from django.views.decorators.http import require_POST
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect, HttpResponse
-from django.contrib.auth import authenticate, login, logout
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.http import JsonResponse
 from django.shortcuts import redirect, render, get_object_or_404
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
+
 from accounts.forms import UserUpdateForm, UserProfileForm, ShippingAddressForm, CustomPasswordChangeForm
+from accounts.models import Profile, Cart, CartItem, Order, OrderItem
+from home.models import ShippingAddress
+# from weasyprint import CSS, HTML
+from products.models import *
 
 
 # Create your views here.
@@ -45,7 +42,7 @@ def login_page(request):
         if user_obj:
             login(request, user_obj)
             messages.success(request, 'Login Successfull.')
-            
+
             # Check if the next URL is safe
             if url_has_allowed_host_and_scheme(url=next_url, allowed_hosts=request.get_host()):
                 return redirect(next_url)
@@ -82,8 +79,8 @@ def register_page(request):
         profile.email_token = str(uuid.uuid4())
         profile.save()
 
-        send_account_activation_email(email, profile.email_token)
-        messages.success(request, "An email has been sent to your mail.")
+        # send_account_activation_email(email, profile.email_token)
+        messages.success(request, profile.email_token)
         return HttpResponseRedirect(request.path_info)
 
     return render(request, 'accounts/register.html')
@@ -107,9 +104,6 @@ def activate_email_account(request, email_token):
         return HttpResponse('Invalid email token.')
 
 
-
-
-
 @login_required
 def add_to_cart(request, uid):
     try:
@@ -117,7 +111,7 @@ def add_to_cart(request, uid):
         if not variant:
             messages.error(request, 'Please select a size variant!')
             return redirect(request.META.get('HTTP_REFERER'))
-        
+
         product = get_object_or_404(Product, uid=uid)
 
         cart, _ = Cart.objects.get_or_create(user=request.user, is_paid=False)
@@ -125,7 +119,7 @@ def add_to_cart(request, uid):
 
         # Check if the cart item already exists in the cart
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product, size_variant=size_variant)
-        
+
         if not created:
             cart_item.quantity += 1
             cart_item.save()
@@ -181,23 +175,18 @@ def cart(request):
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     if cart_obj:
-        
+
         cart_total_in_paise = int(cart_obj.get_cart_total_price_after_coupon() * 100)
-        
+
         if cart_total_in_paise < 100:
             messages.warning(
                 request, 'Total amount in cart is less than the minimum required amount (1.00 INR). Please add a product to the cart.')
             return redirect('index')
-        
-        client = razorpay.Client(auth = (settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
-        payment = client.order.create(
-            {'amount': cart_total_in_paise, 'currency': 'INR', 'payment_capture': 1})
-        cart_obj.razorpay_order_id = payment['id']
+
         cart_obj.save()
 
-    context = {'cart': cart_obj, 'payment': payment, 'quantity_range': range(1, 6),}
+    context = {'cart': cart_obj, 'payment': payment, 'quantity_range': range(1, 6), }
     return render(request, 'accounts/cart.html', context)
-
 
 
 @require_POST
@@ -241,63 +230,20 @@ def remove_coupon(request, cart_id):
 
 # Payment success view
 def success(request):
-    order_id = request.GET.get('order_id')
+    card_id = request.GET.get('card_id')
     # cart = Cart.objects.get(razorpay_order_id = order_id)
-    cart = get_object_or_404(Cart, razorpay_order_id = order_id)
+    cart = get_object_or_404(Cart, uid=card_id)
 
     # Mark the cart as paid
     cart.is_paid = True
+    cart.razorpay_order_id = uuid.uuid4().hex
     cart.save()
 
     # Create the order after payment is confirmed
     order = create_order(cart)
 
-    context = {'order_id': order_id, 'order': order}
+    context = {'order_id': order.order_id, 'order': order}
     return render(request, 'payment_success/payment_success.html', context)
-
-
-# HTML to PDF Conversion
-def render_to_pdf(template_src, context_dict={}):
-    template = get_template(template_src)
-    html = template.render(context_dict)
-
-    # Path to the staticfiles directory
-    static_root = settings.STATIC_ROOT
-    
-    # List all CSS files you need, now collected in STATIC_ROOT
-    css_files = [
-        os.path.join(static_root, 'css', 'bootstrap.css'),
-        os.path.join(static_root, 'css', 'responsive.css'),
-        os.path.join(static_root, 'css', 'ui.css'),
-    ]
-
-    # Create CSS objects for each file
-    css_objects = [CSS(filename=css_file) for css_file in css_files]
-
-    # Convert HTML to PDF with all CSS stylesheets applied
-    pdf_file = HTML(string=html).write_pdf(stylesheets=css_objects)
-    
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_{context_dict["order"].order_id}.pdf"'
-
-    return response
-
-
-
-def download_invoice(request, order_id):
-    order = get_object_or_404(Order, order_id=order_id)
-    order_items = order.order_items.all()
-
-    context = {
-        'order': order,
-        'order_items': order_items,
-    }
-
-    pdf = render_to_pdf('accounts/order_pdf_generate.html', context)
-    if pdf:
-        return pdf
-    return HttpResponse("Error generating PDF", status=400)
-
 
 
 @login_required
@@ -319,7 +265,7 @@ def profile_view(request, username):
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
     context = {
-        'user_name' : user_name,
+        'user_name': user_name,
         'user_form': user_form,
         'profile_form': profile_form
     }
@@ -342,6 +288,7 @@ def change_password(request):
         form = CustomPasswordChangeForm(request.user)
     return render(request, 'accounts/change_password.html', {'form': form})
 
+
 @login_required
 def update_shipping_address(request):
     shipping_address = ShippingAddress.objects.filter(
@@ -356,7 +303,7 @@ def update_shipping_address(request):
             shipping_address.save()
 
             messages.success(request, "The Address Has Been Successfully Saved/Updated!")
-            
+
             form = ShippingAddressForm()
         else:
             form = ShippingAddressForm(request.POST, instance=shipping_address)
@@ -380,7 +327,7 @@ def create_order(cart):
         order_id=cart.razorpay_order_id,
         payment_status="Paid",
         shipping_address=cart.user.profile.shipping_address,
-        payment_mode="Razorpay",
+        payment_mode="COD",
         order_total_price=cart.get_cart_total(),
         coupon=cart.coupon,
         grand_total=cart.get_cart_total_price_after_coupon(),

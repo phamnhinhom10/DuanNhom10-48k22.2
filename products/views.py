@@ -113,8 +113,7 @@ def remove_from_wishlist(request, uid):
 def wishlist_view(request):
     wishlist_items = Wishlist.objects.filter(user=request.user)
     return render(request, 'product/wishlist.html', 
-                  {'wishlist_items': wishlist_items,}
-                  )
+                  {'wishlist_items': wishlist_items,})
 
 
 # Move to cart functionality on wishlist page.
